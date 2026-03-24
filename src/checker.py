@@ -11,6 +11,7 @@ import src.rules.math_format    # noqa: F401
 import src.rules.figure         # noqa: F401
 import src.rules.scoring        # noqa: F401
 import src.rules.text_format    # noqa: F401
+import src.rules.multisol       # noqa: F401
 
 
 class Checker:

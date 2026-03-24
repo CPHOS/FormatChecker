@@ -2,3 +2,7 @@ __pycache__/
 .format_cache/
 
 .DS_Store
+
+*.pdf
+*.log
+*.synctex.gz

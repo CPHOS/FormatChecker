@@ -108,3 +108,38 @@ class TodoCommentRule(BaseRule):
                     suggestion="完成 TODO 内容后移除标记",
                 ))
         return issues
+
+
+class LabelRefSuggestionRule(BaseRule):
+    rule_id = "TEXT-005"
+    description = "检查是否存在可用 \\label/\\ref 替代的硬编码公式引用"
+
+    # 匹配 （数字）式 或 (数字)式，数字可含小数点如 1.3
+    _PATTERN = re.compile(
+        r"[（(]"            # 中文或英文左括号
+        r"(\d+(?:\.\d+)*)"  # 数字，可带小数点分隔如 1.3
+        r"[）)]"            # 中文或英文右括号
+        r"式"               # 紧跟"式"字
+    )
+
+    def check(self, content: str, lines: list[str]) -> list[Issue]:
+        issues: list[Issue] = []
+        for i, line in enumerate(lines):
+            stripped = line.lstrip()
+            if stripped.startswith("%"):
+                continue
+
+            for m in self._PATTERN.finditer(line):
+                num = m.group(1)
+                # 检查这不是在 \texttt{} 或 \textbackslash 等说明性文本中
+                prefix = line[max(0, m.start() - 20):m.start()]
+                if re.search(r"\\text(tt|backslash|bf)", prefix):
+                    continue
+                issues.append(Issue(
+                    self.rule_id, Severity.WARNING,
+                    f"疑似硬编码公式引用 \"{m.group(0)}\"，建议使用 \\label/\\ref",
+                    line=i + 1,
+                    suggestion=f"使用 \\label{{eq:{num}}} 标记公式，"
+                    f"然后用 \\ref{{eq:{num}}}式 引用",
+                ))
+        return issues
