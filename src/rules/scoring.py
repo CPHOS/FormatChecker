@@ -96,16 +96,34 @@ class ScoreConsistencyRule(BaseRule):
             return issues
         total_score = int(total_match.group(1))
 
-        # 收集 eqtagscore 分值
-        eq_scores = sum(
-            int(m.group(1))
-            for m in re.finditer(r"\\eqtagscore\{\d+\}\{(\d+)\}", content)
-        )
-        # 收集 addtext 分值
-        text_scores = sum(
-            int(m.group(1))
-            for m in re.finditer(r"\\addtext\{[^}]*\}\{(\d+)\}", content)
-        )
+        # 标记哪些行处于 multisol 第二及后续 \item 中（不计分区域）
+        skip_lines: set[int] = set()
+        in_multisol = False
+        item_index = 0
+        for i, line in enumerate(lines):
+            if re.search(r"\\begin\{multisol\}", line):
+                in_multisol = True
+                item_index = 0
+            if in_multisol and re.search(r"\\item\b", line):
+                item_index += 1
+            if in_multisol and item_index >= 2:
+                skip_lines.add(i)
+            if re.search(r"\\end\{multisol\}", line):
+                in_multisol = False
+
+        # 逐行收集分值，跳过 multisol 后续解法
+        eq_scores = 0
+        text_scores = 0
+        for i, line in enumerate(lines):
+            if i in skip_lines:
+                continue
+            stripped = line.lstrip()
+            if stripped.startswith("%"):
+                continue
+            for m in re.finditer(r"\\eqtagscore\{[^}]+\}\{(\d+)\}", line):
+                eq_scores += int(m.group(1))
+            for m in re.finditer(r"\\addtext\{[^}]*\}\{(\d+)\}", line):
+                text_scores += int(m.group(1))
 
         sum_score = eq_scores + text_scores
         if sum_score != total_score:

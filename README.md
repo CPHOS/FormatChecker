@@ -93,10 +93,10 @@ python main.py --min-severity error your-problem.tex
 
 | 规则 ID | 说明 |
 |---------|------|
-| FIG-001 | 检查 `figure` 环境中是否包含 `\caption` |
-| FIG-002 | 检查 `figure` 环境中是否包含 `\label` |
-| FIG-003 | 检查 `figure` 环境是否指定了浮动位置 `[H]` |
-| FIG-004 | 检查 `figure` 环境中是否使用 `\centering` |
+| FIG-001 | 检查 `figure`/`wrapfigure`/`subfigure` 环境中是否包含 `\caption` |
+| FIG-002 | 检查 `figure`/`wrapfigure`/`subfigure` 环境中是否包含 `\label` |
+| FIG-003 | 检查 `figure` 环境是否指定了浮动位置 `[H]`（不含 `wrapfigure`/`subfigure`） |
+| FIG-004 | 检查 `figure` 环境中是否使用 `\centering`（不含 `wrapfigure`/`subfigure`） |
 
 ### 评分系统（SCORE）
 
@@ -105,7 +105,7 @@ python main.py --min-severity error your-problem.tex
 | SCORE-001 | 检查 `solution` 环境末尾是否有 `\scoring` 命令 |
 | SCORE-002 | 检查解答中的公式是否通过 `\eqtagscore` 标记分值 |
 | SCORE-003 | 检查 `\solsubq` 命令格式是否有两个参数 `{编号}{分值}` |
-| SCORE-004 | 检查小问分值之和（`\eqtagscore` + `\addtext`）是否等于题目总分 |
+| SCORE-004 | 检查小问分值之和（`\eqtagscore` + `\addtext`）是否等于题目总分（multisol 感知，仅计首个解法） |
 
 ### 文本格式（TEXT）
 
@@ -115,6 +115,15 @@ python main.py --min-severity error your-problem.tex
 | TEXT-002 | 检查中文文本中的括号是否使用中文标点 |
 | TEXT-003 | 检查英文逗号、句号后是否有空格 |
 | TEXT-004 | 检查文档中是否有未处理的 TODO 注释 |
+| TEXT-005 | 检查是否存在可用 `\label`/`\ref` 替代的硬编码公式引用（如"（1）式"） |
+
+### 多解法（MSOL）
+
+| 规则 ID | 说明 |
+|---------|------|
+| MSOL-001 | 检查 `multisol` 环境中是否包含至少两个 `\item` |
+| MSOL-002 | 检查 `multisol` 中第二条及后续解法的 `\eqtagscore` 编号是否带 `*` 后缀 |
+| MSOL-003 | 检查 `multisol` 中各解法的分值总和是否一致 |
 
 ## 缓存机制
 
@@ -203,7 +212,8 @@ FormatChecker/
 │       ├── math_format.py      # 数学排版规则（5 条）
 │       ├── figure.py           # 图片规范规则（4 条）
 │       ├── scoring.py          # 评分系统规则（4 条）
-│       └── text_format.py      # 文本格式规则（4 条）
+│       ├── text_format.py      # 文本格式规则（5 条）
+│       └── multisol.py         # 多解法规则（3 条）
 └── tests/
     └── example-problem.tex     # CPHOS 模板示例文件
 ```
