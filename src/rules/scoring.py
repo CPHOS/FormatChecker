@@ -120,9 +120,9 @@ class ScoreConsistencyRule(BaseRule):
             stripped = line.lstrip()
             if stripped.startswith("%"):
                 continue
-            for m in re.finditer(r"\\eqtagscore\{[^}]+\}\{(\d+)\}", line):
+            for m in re.finditer(r"\\eqtagscore\{.*?\}\{(\d+)\}", line):
                 eq_scores += int(m.group(1))
-            for m in re.finditer(r"\\addtext\{[^}]*\}\{(\d+)\}", line):
+            for m in re.finditer(r"\\addtext\{.*?\}\{(\d+)\}", line):
                 text_scores += int(m.group(1))
 
         sum_score = eq_scores + text_scores

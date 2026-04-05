@@ -89,6 +89,8 @@ python main.py --min-severity error your-problem.tex
 | MATH-004 | 检查矢量是否使用 `\vec{}` 而非加粗 |
 | MATH-005 | 检查数值与单位之间的格式（`\text{~ 单位}`） |
 | MATH-006 | 检查大写希腊字母是否使用斜体（`\var-` 形式） |
+| MATH-007 | 检查微分号 `\mathrm{d}` 前是否缺失`\,`间隔 |
+| MATH-008 | 检查约化普朗克常量是否使用 `\hslash` 而非 `\hbar` |
 
 ### 图片规范（FIG）
 
@@ -210,7 +212,7 @@ FormatChecker/
 │       ├── __init__.py
 │       ├── base.py             # BaseRule 基类 + RuleRegistry 自动注册
 │       ├── structure.py        # 文档结构规则（5 条）
-│       ├── math_format.py      # 数学排版规则（5 条）
+│       ├── math_format.py      # 数学排版规则（8 条）
 │       ├── figure.py           # 图片规范规则（4 条）
 │       ├── scoring.py          # 评分系统规则（4 条）
 │       ├── text_format.py      # 文本格式规则（5 条）
