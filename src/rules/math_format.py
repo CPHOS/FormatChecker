@@ -28,7 +28,7 @@ class DifferentialFormatRule(BaseRule):
                 # 查找积分中的 dx, dy 等但没用 \mathrm{d} 的情况
                 # 匹配 \,dx 或直接的 dx（不在 \mathrm{d} 后）
                 bad_matches = re.finditer(
-                    r"(?<!\\mathrm\{)(?<!\\text\{)\\?d([xyz]|\\theta|\\phi|\\omega)\b",
+                    r"(?<!\\mathrm\{)(?<!\\text\{)\\?d([xyzfgtsSuVvl]|\\theta|\\phi|\\varphi|\\omega|\\tau)\b",
                     line,
                 )
                 for m in bad_matches:
@@ -46,6 +46,68 @@ class DifferentialFormatRule(BaseRule):
                     ))
         return issues
 
+class DifferentialSpacingRule(BaseRule):
+    rule_id = "MATH-007"
+    description = "检查微分号前是否缺失间距 commands \\,"
+
+    def check(self, content: str, lines: list[str]) -> list[Issue]:
+        issues: list[Issue] = []
+        in_math = False
+        for i, line in enumerate(lines):
+            stripped = line.lstrip()
+            if stripped.startswith("%"):
+                continue
+
+            if re.search(r"\\begin\{equation\}", line):
+                in_math = True
+            if re.search(r"\\end\{equation\}", line):
+                in_math = False
+                continue
+
+            if in_math or re.search(r"\$.*\$", line):
+                matches = re.finditer(r"\\mathrm\{d\}", line)
+                for m in matches:
+                    start = m.start()
+                    if start == 0:
+                        continue
+                    
+                    prefix = line[:start].rstrip()
+                    if not prefix:
+                        continue
+                        
+                    # 1. 以间距命令结尾：\, \; \! \ \quad \qquad \hspace \hfill
+                    if re.search(r"\\(?:,|;|!| |quad|qquad|hspace\{[^}]*\}|hfill)$", prefix):
+                        continue
+                        
+                    # 2. 以数学操作符、关系符、左括号等符号结尾
+                    if re.search(r"[-+*/=<>\(\[{&^_:\$]$", prefix):
+                        continue
+                        
+                    # 3. 特例处理 \cdot, \times, \otimes 等运算符与排版符号
+                    if re.search(r"\\(?:cdot|times|otimes|oplus|pm|mp|div|equiv|approx|propto|sim|leq|geq|ll|gg|limits)\s*$", prefix):
+                        continue
+                        
+                    # 4. 积分号等开头直接跟 d
+                    if re.search(r"\\(?:i+nt|oint|sum|prod)\s*$", prefix):
+                        continue
+                        
+                    # 5. 前面是 \partial, \nabla
+                    if re.search(r"\\(?:partial|nabla)\s*$", prefix):
+                        continue
+                        
+                    # 6. 波浪号空格
+                    if prefix.endswith("~"):
+                        continue
+
+                    # 其他情况统统报警（多半是前面跟了变量、右括号、数字等，未分排）
+                    issues.append(Issue(
+                        self.rule_id, Severity.WARNING,
+                        "微分符号 \\mathrm{d} 与前方变量（或右括号、数字等）之间应添加物理间距 \\,",
+                        line=i + 1,
+                        suggestion="在 \\mathrm{d} 前添加 \\,"
+                    ))
+        return issues
+
 
 class SpecialConstantsRule(BaseRule):
     rule_id = "MATH-002"
@@ -53,7 +115,7 @@ class SpecialConstantsRule(BaseRule):
 
     PATTERNS = [
         # (错误用法正则, 正确写法, 描述)
-        (r"(?<![a-zA-Z\\])(?<!\\mathrm\{)e\^", "\\mathrm{e}^", "自然常数 e 应使用正体 \\mathrm{e}"),
+        (r"(?<![a-zA-Z\\])(?<!\\mathrm\{)e\^", "\\mathrm{e}^", "自然常数 e 应使用正体 \\mathrm{e} (表示元电荷、电子等物理量时可忽略该建议)"),
         (r"(?<!\\up)\\pi(?![a-zA-Z])", "\\uppi", "圆周率 π 应使用 \\uppi"),
     ]
 
@@ -202,6 +264,6 @@ class UpperGreekItalicRule(BaseRule):
                     self.rule_id, Severity.INFO,
                     f"大写希腊字母 \\{name} 默认为正体，物理公式中通常应使用斜体 \\{replacement}",
                     line=i + 1,
-                    suggestion=f"将 \\{name} 替换为 \\{replacement}",
+                    suggestion=f"将 \\{name} 替换为 \\{replacement} (若确实需要正体，如表述变化量的 \\Delta、特殊函数等情况可忽略该建议)",
                 ))
         return issues
