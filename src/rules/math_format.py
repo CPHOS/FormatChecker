@@ -70,31 +70,31 @@ class DifferentialSpacingRule(BaseRule):
                     start = m.start()
                     if start == 0:
                         continue
-                    
+
                     prefix = line[:start].rstrip()
                     if not prefix:
                         continue
-                        
+
                     # 1. 以间距命令结尾：\, \; \! \ \quad \qquad \hspace \hfill
                     if re.search(r"\\(?:,|;|!| |quad|qquad|hspace\{[^}]*\}|hfill)$", prefix):
                         continue
-                        
+
                     # 2. 以数学操作符、关系符、左括号等符号结尾
                     if re.search(r"[-+*/=<>\(\[{&^_:\$]$", prefix):
                         continue
-                        
+
                     # 3. 特例处理 \cdot, \times, \otimes 等运算符与排版符号
                     if re.search(r"\\(?:cdot|times|otimes|oplus|pm|mp|div|equiv|approx|propto|sim|leq|geq|ll|gg|limits)\s*$", prefix):
                         continue
-                        
+
                     # 4. 积分号等开头直接跟 d
                     if re.search(r"\\(?:i+nt|oint|sum|prod)\s*$", prefix):
                         continue
-                        
+
                     # 5. 前面是 \partial, \nabla
                     if re.search(r"\\(?:partial|nabla)\s*$", prefix):
                         continue
-                        
+
                     # 6. 波浪号空格
                     if prefix.endswith("~"):
                         continue
@@ -208,11 +208,11 @@ class UnitFormatRule(BaseRule):
                 in_math = False
                 continue
 
-            if in_math:
+            if in_math or re.search(r"\$.*\$", line):
                 # 检查单位是否用了 \text{~ unit} 格式
-                # 如果有数字后直接跟字母（可能是单位），且没有 \text
-                matches = re.finditer(r"\d+\s*\\text\{([^}]*)\}", line)
-                for m in matches:
+                # 如果有数字后紧跟 \text
+                matches_text = re.finditer(r"\d+\s*\\text\{([^}]*)\}", line)
+                for m in matches_text:
                     unit_text = m.group(1)
                     if not unit_text.startswith("~"):
                         issues.append(Issue(
@@ -220,6 +220,19 @@ class UnitFormatRule(BaseRule):
                             "数值和单位间建议用 \\text{~ 单位} 保持间距",
                             line=i + 1,
                             suggestion="使用 \\text{~m/s} 格式",
+                        ))
+
+                # 检查如有数字后紧跟 \mathrm
+                matches_mathrm = re.finditer(r"\d+\s*\\mathrm\{([^}]*)\}", line)
+                for m in matches_mathrm:
+                    unit_text = m.group(1).strip()
+                    # e, d, i, Const 为保留常数/微分符号，非单位
+                    if unit_text not in ("e", "d", "i", "Const"):
+                        issues.append(Issue(
+                            self.rule_id, Severity.WARNING,
+                            f"数值后的 \\mathrm{{{unit_text}}} 可能是物理单位，应改用 \\text 表示",
+                            line=i + 1,
+                            suggestion=f"替换为 \\text{{~{unit_text}}}",
                         ))
         return issues
 
